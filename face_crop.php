@@ -135,9 +135,40 @@ function bounding_box( $bounds ) {
 		'width' => max($xs) - min($xs) );
 }
 
-add_action( 'post-upload-ui', 'add_face_crop' );
-function add_face_crop() {
-	echo "Hello, World!";
-}
 
+add_filter( 'attachment_fields_to_edit', function( $form_fields ) {
+	$form_fields['face_crop'] = array(
+			'label'      => 'Image Crop',
+			'input'      => 'html',
+			'html'       => '<input type="submit" value="Face Cropping" class="button" id="crop_faces" /> <input type="submit" value="Normal Cropping" class="button" id="crop_normal" />',
+			'helps'      => 'This may take a while'
+		);
+	return $form_fields;
+});
+
+add_action( 'admin_footer', function() {
+	?>
+	<script>
+		jQuery(document).ready(function($) {
+			$('#crop_faces').click(function(e) {
+				data = { 
+					'attachment_id': $('#attachment_id').val(), 
+					'action': 'face_crop' 
+				}
+				$.post(ajaxurl, data, function(data) {
+					console.log(data);
+				})
+				e.preventDefault();
+			})
+		});
+	</script>
+	<?php
+});
+
+add_action( 'wp_ajax_face_crop', function() {
+	$upload_dir = wp_upload_dir();
+	$file = get_attached_file( $_POST['attachment_id'] );
+	wp_generate_attachment_metadata( (int)$_POST['attachment_id'], $file );
+	exit;
+});
 ?>
