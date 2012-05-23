@@ -29,7 +29,7 @@ require_once( ABSPATH . 'wp-admin/includes/image-edit.php' );
 // add_filter( 'wp_generate_attachment_metadata', 'crop_faces', 10, 2 );
 
 /**
- *
+ * @todo: add error checking
  */
 function crop_faces( $attach_data, $attach_id ) {
 	global $_wp_additional_image_sizes; 
@@ -78,6 +78,8 @@ function crop_faces( $attach_data, $attach_id ) {
 
 		imagedestroy( $src );
 	}
+
+	return $attach_data;
 
 }
 
@@ -174,7 +176,14 @@ add_action( 'admin_footer', function() {
 			});
 
 			$('#crop_normal').click(function(e) {
-				console.log('Nothing to see here...');
+				$('.face_crop .help').prepend("<img src='/wp-admin/images/wpspin_light.gif' />");
+				data = { 
+					'attachment_id': $('#attachment_id').val(), 
+					'action': 'normal_crop' 
+				}
+				$.post(ajaxurl, data, function(data) {
+					$('.face_crop .help img').remove();
+				})
 				e.preventDefault();
 			});
 		});
@@ -186,7 +195,7 @@ add_action( 'admin_footer', function() {
  *
  */
 add_action( 'wp_ajax_face_crop', function() {
-	echo "HERE";
+	@set_time_limit( 900 );
 	$file = get_attached_file( (int)$_POST['attachment_id'] );
 	$meta = wp_generate_attachment_metadata( (int)$_POST['attachment_id'], $file );
 	crop_faces( $meta, (int)$_POST['attachment_id'] );
@@ -197,7 +206,10 @@ add_action( 'wp_ajax_face_crop', function() {
  *
  */
 add_action( 'wp_ajax_normal_crop', function() {
-
+	@set_time_limit( 900 );
+	$file = get_attached_file( (int)$_POST['attachment_id'] );
+	$meta = wp_generate_attachment_metadata( (int)$_POST['attachment_id'], $file );
+	wp_update_attachment_metadata( (int)$_POST['attachment_id'], $meta );
 	exit;
 });
 ?>
