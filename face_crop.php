@@ -26,16 +26,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 require_once( ABSPATH . 'wp-admin/includes/image-edit.php' );
 
 
-add_filter( 'wp_generate_attachment_metadata', 'crop_faces', 10, 2 );
+// add_filter( 'wp_generate_attachment_metadata', 'crop_faces', 10, 2 );
 
-// For testing only
-add_action( 'init', function() {
-	if( empty( $_GET['testing'] ) ) return;
-	$attach_data = unserialize('a:6:{s:5:"width";i:300;s:6:"height";i:400;s:14:"hwstring_small";s:22:"height=\'96\' width=\'72\'";s:4:"file";s:19:"2012/05/test141.jpg";s:5:"sizes";a:2:{s:9:"thumbnail";a:3:{s:4:"file";s:19:"test141-150x150.jpg";s:5:"width";i:150;s:6:"height";i:150;}s:6:"medium";a:3:{s:4:"file";s:19:"test141-225x300.jpg";s:5:"width";i:225;s:6:"height";i:300;}}s:10:"image_meta";a:10:{s:8:"aperture";i:0;s:6:"credit";s:0:"";s:6:"camera";s:0:"";s:7:"caption";s:0:"";s:17:"created_timestamp";i:0;s:9:"copyright";s:0:"";s:12:"focal_length";i:0;s:3:"iso";i:0;s:13:"shutter_speed";i:0;s:5:"title";s:0:"";}}');
-	crop_faces( $attach_data, 33 );
-	die("DONE");
-});
-
+/**
+ *
+ */
 function crop_faces( $attach_data, $attach_id ) {
 	global $_wp_additional_image_sizes; 
 	ini_set( 'memory_limit', '512M' );
@@ -86,6 +81,9 @@ function crop_faces( $attach_data, $attach_id ) {
 
 }
 
+/**
+ *
+ */
 function face_detect( $src ) {
 	require_once("FaceDetector.php");
 	$detector = new FaceDetector();
@@ -93,7 +91,9 @@ function face_detect( $src ) {
 	return $detector->getFaces();
 }
 
-
+/**
+ *
+ */
 function transpose_origin( $bounds ) {
 	return array( 
 			'x' => round( $bounds['x'] + ( $bounds['width'] / 2 ) ),
@@ -101,6 +101,9 @@ function transpose_origin( $bounds ) {
 		);
 }
 
+/**
+ *
+ */
 function normalize_points( $origin, $size ) {
 	$x = $origin['x'] - ( $size['width'] / 2 );
 	$y = $origin['y'] - ( $size['height'] / 2 );
@@ -109,6 +112,9 @@ function normalize_points( $origin, $size ) {
 	return array( $x, $y );
 }
 
+/**
+ *
+ */
 function bounding_box( $bounds ) {
 
 	if( 1 == count( $bounds ) ) {
@@ -135,7 +141,9 @@ function bounding_box( $bounds ) {
 		'width' => max($xs) - min($xs) );
 }
 
-
+/** 
+ * Add crop buttons to the media.php screen
+ */
 add_filter( 'attachment_fields_to_edit', function( $form_fields ) {
 	$form_fields['face_crop'] = array(
 			'label'      => 'Image Crop',
@@ -146,29 +154,50 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields ) {
 	return $form_fields;
 });
 
+/**
+ * Add JavaScript to the footer for the ajax button calls
+ */
 add_action( 'admin_footer', function() {
 	?>
 	<script>
 		jQuery(document).ready(function($) {
 			$('#crop_faces').click(function(e) {
+				$('.face_crop .help').prepend("<img src='/wp-admin/images/wpspin_light.gif' />");
 				data = { 
 					'attachment_id': $('#attachment_id').val(), 
 					'action': 'face_crop' 
 				}
 				$.post(ajaxurl, data, function(data) {
-					console.log(data);
+					$('.face_crop .help img').remove();
 				})
 				e.preventDefault();
-			})
+			});
+
+			$('#crop_normal').click(function(e) {
+				console.log('Nothing to see here...');
+				e.preventDefault();
+			});
 		});
 	</script>
 	<?php
 });
 
+/**
+ *
+ */
 add_action( 'wp_ajax_face_crop', function() {
-	$upload_dir = wp_upload_dir();
-	$file = get_attached_file( $_POST['attachment_id'] );
-	wp_generate_attachment_metadata( (int)$_POST['attachment_id'], $file );
+	echo "HERE";
+	$file = get_attached_file( (int)$_POST['attachment_id'] );
+	$meta = wp_generate_attachment_metadata( (int)$_POST['attachment_id'], $file );
+	crop_faces( $meta, (int)$_POST['attachment_id'] );
+	exit;
+});
+
+/**
+ *
+ */
+add_action( 'wp_ajax_normal_crop', function() {
+
 	exit;
 });
 ?>
